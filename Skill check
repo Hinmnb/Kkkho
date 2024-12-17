@@ -1,0 +1,75 @@
+-- Place this script in StarterPlayerScripts
+
+   local player = game.Players.LocalPlayer
+   local VirtualInputManager = game:GetService('VirtualInputManager')
+
+   -- Define the tolerance range
+   local TOLERANCE = 0.1 -- Adjust this value as needed
+
+   -- Function to handle skill check alignment
+   local function handleSkillCheck()
+       local screenGui = player.PlayerGui:FindFirstChild("ScreenGui")
+       if not screenGui then
+           return
+       end
+
+       local menu = screenGui:FindFirstChild("Menu")
+       if not menu then
+           return
+       end
+
+       local skillCheckFrame = menu:FindFirstChild("SkillCheckFrame")
+       if not skillCheckFrame then
+           return
+       end
+
+       -- Function to perform the check when skill check frame is visible
+       local function onVisibilityChanged()
+           if skillCheckFrame.Visible then
+               local marker = skillCheckFrame:FindFirstChild("Marker")
+               local goldArea = skillCheckFrame:FindFirstChild("GoldArea")
+
+               if marker and goldArea then
+                   local markerPosition = marker.AbsolutePosition
+                   local goldAreaPosition = goldArea.AbsolutePosition
+                   local goldAreaSize = goldArea.AbsoluteSize
+
+                   -- Check if the Marker is within the bounds of the GoldArea
+                   if markerPosition.X >= goldAreaPosition.X and markerPosition.X <= (goldAreaPosition.X + goldAreaSize.X) + TOLERANCE then
+                       -- Send spacebar press event
+                       VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                   end
+               end
+           end
+       end
+
+       -- Connect to the VisibilityChanged event
+       skillCheckFrame.Changed:Connect(function(property)
+           if property == "Visible" then
+               onVisibilityChanged()
+           end
+       end)
+
+       -- Detect changes in Marker and GoldArea positions
+       local marker = skillCheckFrame:FindFirstChild("Marker")
+       local goldArea = skillCheckFrame:FindFirstChild("GoldArea")
+       
+       if marker then
+           marker.Changed:Connect(function(property)
+               if property == "AbsolutePosition" then
+                   onVisibilityChanged()
+               end
+           end)
+       end
+       
+       if goldArea then
+           goldArea.Changed:Connect(function(property)
+               if property == "AbsolutePosition" or property == "AbsoluteSize" then
+                   onVisibilityChanged()
+               end
+           end)
+       end
+   end
+
+   -- Start handling the skill check
+   handleSkillCheck()
