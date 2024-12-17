@@ -1,0 +1,383 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Dandy word",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "Welcome",
+   LoadingSubtitle = "Loading",
+   Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
+
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = nil, -- Create a custom folder for your hub/game
+      FileName = "Big Hub"
+   },
+
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+   },
+
+   KeySystem = false, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"Hello"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+   }
+})
+
+local MainTab = Window:CreateTab("Main", nil) -- Title, Image
+local MainSection = MainTab:CreateSection("Usefull")
+
+local Button = MainTab:CreateButton({
+   Name = "Fullbright",
+   Callback = function()
+   -- FULLBRIGHT
+   pcall(function()
+      local lighting = game:GetService("Lighting");
+      lighting.Ambient = Color3.fromRGB(255, 255, 255);
+      lighting.Brightness = 1;
+      lighting.FogEnd = 1e10;
+      for i, v in pairs(lighting:GetDescendants()) do
+         if v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("SunRaysEffect") then
+            v.Enabled = false;
+         end;
+      end;
+      lighting.Changed:Connect(function()
+         lighting.Ambient = Color3.fromRGB(255, 255, 255);
+         lighting.Brightness = 1;
+         lighting.FogEnd = 1e10;
+      end);
+      spawn(function()
+         local character = game:GetService("Players").LocalPlayer.Character;
+         while wait() do
+            repeat wait() until character ~= nil;
+            if not character.HumanoidRootPart:FindFirstChildWhichIsA("PointLight") then
+               local headlight = Instance.new("PointLight", character.HumanoidRootPart);
+               headlight.Brightness = 1;
+               headlight.Range = 60;
+            end;
+         end;
+      end);
+   end)
+   end,
+})
+
+local Button = MainTab:CreateButton({
+   Name = "Auto skill check",
+   Callback = function()
+   -- Place this script in StarterPlayerScripts
+
+   local player = game.Players.LocalPlayer
+   local VirtualInputManager = game:GetService('VirtualInputManager')
+
+   -- Define the tolerance range
+   local TOLERANCE = 0.1 -- Adjust this value as needed
+
+   -- Function to handle skill check alignment
+   local function handleSkillCheck()
+       local screenGui = player.PlayerGui:FindFirstChild("ScreenGui")
+       if not screenGui then
+           return
+       end
+
+       local menu = screenGui:FindFirstChild("Menu")
+       if not menu then
+           return
+       end
+
+       local skillCheckFrame = menu:FindFirstChild("SkillCheckFrame")
+       if not skillCheckFrame then
+           return
+       end
+
+       -- Function to perform the check when skill check frame is visible
+       local function onVisibilityChanged()
+           if skillCheckFrame.Visible then
+               local marker = skillCheckFrame:FindFirstChild("Marker")
+               local goldArea = skillCheckFrame:FindFirstChild("GoldArea")
+
+               if marker and goldArea then
+                   local markerPosition = marker.AbsolutePosition
+                   local goldAreaPosition = goldArea.AbsolutePosition
+                   local goldAreaSize = goldArea.AbsoluteSize
+
+                   -- Check if the Marker is within the bounds of the GoldArea
+                   if markerPosition.X >= goldAreaPosition.X and markerPosition.X <= (goldAreaPosition.X + goldAreaSize.X) + TOLERANCE then
+                       -- Send spacebar press event
+                       VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                   end
+               end
+           end
+       end
+
+       -- Connect to the VisibilityChanged event
+       skillCheckFrame.Changed:Connect(function(property)
+           if property == "Visible" then
+               onVisibilityChanged()
+           end
+       end)
+
+       -- Detect changes in Marker and GoldArea positions
+       local marker = skillCheckFrame:FindFirstChild("Marker")
+       local goldArea = skillCheckFrame:FindFirstChild("GoldArea")
+       
+       if marker then
+           marker.Changed:Connect(function(property)
+               if property == "AbsolutePosition" then
+                   onVisibilityChanged()
+               end
+           end)
+       end
+       
+       if goldArea then
+           goldArea.Changed:Connect(function(property)
+               if property == "AbsolutePosition" or property == "AbsoluteSize" then
+                   onVisibilityChanged()
+               end
+           end)
+       end
+   end
+
+   -- Start handling the skill check
+   handleSkillCheck()
+   end,
+})
+
+local MainSection = MainTab:CreateSection("Esp")
+
+local isTwistedAndGeneratorESPEnabled = false
+
+-- Function to create Highlight for monsters and generators
+local function createHighlightESP(object, color)
+    if not object then
+        warn("createHighlightESP: object is nil")
+        return
+    end
+
+    -- Create Highlight for the object
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "HighlightESP"
+    highlight.Adornee = object
+    highlight.FillColor = color
+    highlight.OutlineTransparency = 0.5  -- Adjust outline visibility
+    highlight.FillTransparency = 0.5    -- Make fill visible even if blocked
+    highlight.Parent = object
+
+    -- Make highlight visible through objects by setting its ZIndex
+    highlight.ZIndex = 10
+end
+
+-- Improved recursive function to search for Monsters and Generators
+local function recursiveSearchForESP(parent)
+    for _, child in ipairs(parent:GetChildren()) do
+        -- Check if the child is a folder or model and recursively search
+        if child:IsA("Folder") or child:IsA("Model") then
+            -- Check for Monsters folder
+            if child.Name == "Monsters" then
+                for _, monster in pairs(child:GetChildren()) do
+                    if not monster:FindFirstChild("HighlightESP") then
+                        createHighlightESP(monster, Color3.fromRGB(255, 0, 0)) -- Red color for monsters
+                    end
+                end
+            end
+            -- Check for Generators folder
+            if child.Name == "Generators" then
+                for _, generator in pairs(child:GetChildren()) do
+                    if not generator:FindFirstChild("HighlightESP") then
+                        createHighlightESP(generator, Color3.fromRGB(0, 255, 0)) -- Green color for generators
+                    end
+                end
+            end
+            -- Recursively search deeper levels
+            recursiveSearchForESP(child)
+        end
+    end
+end
+
+-- Monitor CurrentRoom and apply ESP
+local function monitorCurrentRoom()
+    while isTwistedAndGeneratorESPEnabled do
+        pcall(function()
+            local currentRoom = workspace:FindFirstChild("CurrentRoom")
+            if currentRoom then
+                recursiveSearchForESP(currentRoom)
+            end
+        end)
+        wait(1) -- Adjust delay for performance
+    end
+end
+
+-- Function to remove ESP highlights
+local function removeTwistedAndGeneratorESP()
+    local currentRoom = workspace:FindFirstChild("CurrentRoom")
+    if currentRoom then
+        for _, model in ipairs(currentRoom:GetChildren()) do
+            if model:IsA("Model") then
+                if model:FindFirstChild("Monsters") then
+                    for _, monster in ipairs(model.Monsters:GetChildren()) do
+                        local highlight = monster:FindFirstChild("HighlightESP")
+                        if highlight then
+                            highlight:Destroy()
+                        end
+                    end
+                end
+                if model:FindFirstChild("Generators") then
+                    for _, generator in ipairs(model.Generators:GetChildren()) do
+                        local highlight = generator:FindFirstChild("HighlightESP")
+                        if highlight then
+                            highlight:Destroy()
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Toggle for enabling/disabling ESP highlights
+local toggleESP = MainTab:CreateToggle({
+    Name = "Twisted And Generator ESP",
+    CurrentValue = false,
+    Flag = "TwistedAndGeneratorESP",
+    Callback = function(state)
+        isTwistedAndGeneratorESPEnabled = state
+        if isTwistedAndGeneratorESPEnabled then
+            spawn(monitorCurrentRoom)
+        else
+            removeTwistedAndGeneratorESP()
+        end
+    end
+})
+
+
+
+local isItemsESPEnabled = false
+
+-- Function to create item ESP with highlight and label
+local function createItemESP(item)
+    -- Create Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Parent = item
+    highlight.FillColor = Color3.new(0, 166, 255) -- Blue fill color
+    highlight.OutlineColor = Color3.new(255, 255, 255) -- White outline color
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+
+    -- Create BillboardGui
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Adornee = item:FindFirstChildWhichIsA("BasePart") -- Attach to the first available BasePart in the model
+    billboardGui.Size = UDim2.new(0, 100, 0, 50)
+    billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+    billboardGui.AlwaysOnTop = true
+    billboardGui.Parent = item
+
+    -- Create TextLabel
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Text = item.Name
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1, 1, 1) -- White text color
+    textLabel.TextStrokeTransparency = 0
+    textLabel.Font = Enum.Font.Arcade
+    textLabel.TextSize = 14
+    textLabel.Parent = billboardGui
+end
+
+-- Function to remove ESP from items after 20 seconds
+local function removeItemESP(item)
+    wait(20) -- Wait 20 seconds
+    if item:FindFirstChild("Highlight") then
+        item.Highlight:Destroy()
+    end
+    if item:FindFirstChild("BillboardGui") then
+        item.BillboardGui:Destroy()
+    end
+end
+
+-- Function to update and create ESP for items in the current room
+local function updateItemsESP()
+    local currentRoom = workspace:FindFirstChild("CurrentRoom")
+    if currentRoom then
+        for _, model in ipairs(currentRoom:GetChildren()) do
+            if model:IsA("Model") then
+                local itemsFolder = model:FindFirstChild("Items") -- Looking for the Items folder
+                if itemsFolder then
+                    for _, item in ipairs(itemsFolder:GetChildren()) do
+                        if item:IsA("Model") and not item:FindFirstChild("Highlight") then
+                            createItemESP(item) -- Create ESP for the item
+                            spawn(function()
+                                removeItemESP(item) -- Remove ESP after 20 seconds
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Function to loop and continuously check for new items to highlight
+local function loopHighlightItems()
+    while isItemsESPEnabled do
+        updateItemsESP()
+        wait(1) -- Adjust this delay for performance
+    end
+end
+
+-- Function to remove all item ESP when disabling the feature
+local function removeItemsESP()
+    local currentRoom = workspace:FindFirstChild("CurrentRoom")
+    if currentRoom then
+        for _, model in ipairs(currentRoom:GetChildren()) do
+            if model:IsA("Model") then
+                local itemsFolder = model:FindFirstChild("Items")
+                if itemsFolder then
+                    for _, item in ipairs(itemsFolder:GetChildren()) do
+                        if item:FindFirstChild("Highlight") then
+                            item.Highlight:Destroy()
+                        end
+                        if item:FindFirstChild("BillboardGui") then
+                            item.BillboardGui:Destroy()
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Function to toggle the ESP on or off
+local function toggleItemsESP(state)
+    isItemsESPEnabled = state
+    if isItemsESPEnabled then
+        spawn(loopHighlightItems) -- Start the loop to update ESP continuously
+        print("Items ESP Enabled")
+    else
+        removeItemsESP() -- Remove all ESP when disabled
+        print("Items ESP Disabled")
+    end
+end
+
+-- Create a Toggle Button in the UI for enabling/disabling ESP
+local ItemsToggle = MainTab:CreateToggle({
+    Name = "Items ESP",
+    CurrentValue = isItemsESPEnabled,
+    Flag = "ToggleESP", -- Use a flag for saving configuration
+    Callback = function(state)
+        toggleItemsESP(state)
+    end,
+})
+
+-- Initial ESP update call to set it up if needed
+if isItemsESPEnabled then
+    updateItemsESP()
+end
